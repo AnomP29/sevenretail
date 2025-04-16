@@ -54,7 +54,6 @@ def fetch_all_messages(room_id, limit=3):
     page = 1
     while page < 3:
         url = f"{QISCUS_BASE}/load_comments?room_id={room_id}&page={page}&limit={limit}"
-        print(url)
         res = requests.get(url, headers=HEADERS).json()
         comments = res.get("results", {}).get("comments", [])
         if not comments:
@@ -151,7 +150,7 @@ if __name__ == "__main__":
                 results.append(funnel)
         except Exception as e:
             print(f"❌ Error processing room {room_id}: {e}")
-        print(room_id)
+        # print(room_id)
         
 
     if results:
@@ -164,5 +163,5 @@ if __name__ == "__main__":
 
     print(f"✅ Done. Extracted {len(results)} funnel rows.")
     db.close()
-    print(fetch_all_messages(room_id, 3))
+    # print(fetch_all_messages(room_id, 3))
     # main()
