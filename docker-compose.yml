@@ -1,0 +1,69 @@
+services:
+  db:
+    image: postgres:14
+    container_name: postgres_db_sevenretail
+    environment:
+      POSTGRES_DB: ${POSTGRE_DB}
+      POSTGRES_USER: ${POSTGRE_USER}
+      POSTGRES_PASSWORD: ${POSTGRE_PASSWORD}
+    ports:
+      - "6432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./initdb/init.sql:/docker-entrypoint-initdb.d/init.sql
+    env_file:
+      - .env
+
+  api:
+    build: .
+    container_name: webhook_api_sevenretail
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - QISCUS_BASE_URL=${QISCUS_API_URL}
+      - QISCUS_SECRET_KEY=${QISCUS_TOKEN}
+
+    volumes:
+      - ./app:/app
+    restart: always
+
+
+  funnel-job:
+    build: .
+    container_name: funnel_worker_sevenretail
+    volumes:
+      - ./app:/app
+      # - .env:/app/.env   # ✅ Make .env available to the script
+    command: ["python", "funnel_processor.py"]
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - QISCUS_BASE_URL=${QISCUS_API_URL}
+      - QISCUS_SECRET_KEY=${QISCUS_TOKEN}
+
+    restart: unless-stopped
+
+  funnel_processor:
+    build: .
+    container_name: funnel_processor
+    env_file:
+      - .env  # mount the .env file from one directory up    
+    working_dir: /app  # Set working directory in the container
+    entrypoint: python funnel_processor.py  # Run the script
+    environment:
+      QISCUS_BASE_URL: ${QISCUS_API_URL}
+      QISCUS_SECRET_KEY: ${QISCUS_TOKEN}
+    volumes:
+      - ./app:/app
+      - .env:/app/.env  # Mount the .env file at the path the script is expecting
+
+volumes:
+  pgdata:
